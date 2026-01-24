@@ -1,0 +1,80 @@
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: budget-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./vendor:/var/www/vendor
+    networks:
+      - budget-network
+    depends_on:
+      - db
+      - redis
+
+  webserver:
+    image: nginx:alpine
+    container_name: budget-webserver
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - budget-network
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: budget-db
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: budget
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+      MYSQL_USER: budget
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - budget-network
+
+  redis:
+    image: redis:alpine
+    container_name: budget-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - budget-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: budget-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+    networks:
+      - budget-network
+    depends_on:
+      - db
+
+networks:
+  budget-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local
