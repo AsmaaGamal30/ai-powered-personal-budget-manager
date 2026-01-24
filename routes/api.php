@@ -2,12 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
-
+use App\Http\Controllers\Auth\SocialAuthController;
 
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->name('verify-otp');
 Route::post('/send-otp', [AuthController::class, 'sendOtp'])->name('send-otp');
+
+//social auth routes
+Route::get('{provider}/redirect', [SocialAuthController::class, 'redirectToProvider'])->name('social.redirect');
+Route::get('{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])->name('social.callback');
 
 
 Route::prefix('users')->middleware(['auth:sanctum', 'verified'])->group(function () {
