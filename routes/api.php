@@ -10,6 +10,6 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->name('verify-o
 Route::post('/send-otp', [AuthController::class, 'sendOtp'])->name('send-otp');
 
 
-Route::prefix('user')->middleware(['auth:sanctum', 'verified'])->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('user.logout');
+Route::prefix('users')->middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::post('/{user}/logout', [AuthController::class, 'logout'])->name('user.logout');
 });

@@ -22,11 +22,12 @@
     <env name="APP_MAINTENANCE_DRIVER" value="file"/>
     <env name="BCRYPT_ROUNDS" value="4"/>
     <env name="BROADCAST_CONNECTION" value="null"/>
+    <env name="CACHE_DRIVER" value="array"/>
     <env name="CACHE_STORE" value="array"/>
     <env name="DB_CONNECTION" value="mysql"/>
     <env name="DB_HOST" value="db"/>
     <env name="DB_PORT" value="3306"/>
-    <env name="DB_DATABASE" value="testing_db"/>
+    <env name="DB_DATABASE" value="budget_test"/>
     <env name="DB_USERNAME" value="root"/>
     <env name="DB_PASSWORD" value="root"/>
     <env name="MAIL_MAILER" value="array"/>

@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
@@ -17,18 +18,19 @@ class AuthController extends Controller
     {
         $user = User::where('email', $request->email)->first();
         if (!$user) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+            return response()->json(['message' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
         }
         $otp = $request->otp;
         if (Cache::get('otp_' . $user->email) !== $otp) {
-            return response()->json(['message' => 'Invalid OTP'], 401);
+            return response()->json(['message' => 'Invalid OTP'], Response::HTTP_UNAUTHORIZED);
         }
 
         $accessToken = $user->createToken('authToken')->plainTextToken;
+        Cache::forget('otp_' . $user->email);
         return response()->json([
             'access_token' => $accessToken,
             'user' => $user,
-        ]);
+        ], Response::HTTP_OK);
     }
 
     public function register(RegisterUserRequest $request)
@@ -37,7 +39,7 @@ class AuthController extends Controller
         $name = $request->name;
         $user = User::where('email', $email)->first();
         if ($user) {
-            return response()->json(['message' => 'User already exists'], 409);
+            return response()->json(['message' => 'User already exists'], Response::HTTP_CONFLICT);
         }
         $user = User::create([
             'email' => $email,
@@ -48,6 +50,7 @@ class AuthController extends Controller
         Cache::put('otp_' . $user->email, $otp, now()->addMinutes(10));
 
         Mail::to($email)->send(new SendOtpEmail($otp, $name));
+        return response()->json(['message' => 'User registered successfully. Please verify your email with the OTP sent.'], Response::HTTP_CREATED);
     }
 
     public function verifyOtp(Request $request)
@@ -59,11 +62,11 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
         if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
+            return response()->json(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
         }
 
         if (Cache::get('otp_' . $user->email) !== $request->otp) {
-            return response()->json(['message' => 'Invalid OTP'], 401);
+            return response()->json(['message' => 'Invalid OTP'], Response::HTTP_UNAUTHORIZED);
         }
 
         Cache::forget('otp_' . $user->email);
@@ -74,7 +77,7 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $accessToken,
             'user' => $user,
-        ]);
+        ], Response::HTTP_OK);
 
     }
 
@@ -86,7 +89,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
         if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
+            return response()->json(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
         }
 
         $otp = rand(10000, 99999);
@@ -95,12 +98,12 @@ class AuthController extends Controller
 
         Mail::to($user->email)->send(new SendOtpEmail($otp, $user->name));
 
-        return response()->json(['message' => 'OTP sent successfully']);
+        return response()->json(['message' => 'OTP sent successfully'], Response::HTTP_OK);
     }
 
     public function logout(User $user)
     {
         $user->tokens()->delete();
-        return response()->json(['message' => 'Logged out successfully']);
+        return response()->json(['message' => 'Logged out successfully'], Response::HTTP_OK);
     }
 }
