@@ -47,18 +47,14 @@ class User extends Authenticatable
         ];
     }
 
-    public function categories()
-    {
-        return $this->belongsToMany(Category::class, 'category_users');
-    }
-
     public function budgets()
     {
-        return $this->hasManyThrough(Budget::class, CategoryUser::class);
+        return $this->hasMany(Budget::class);
     }
 
     public function stats()
     {
-        return $this->hasManyThrough(Stats::class, CategoryUser::class);
+        return $this->hasMany(Stats::class);
     }
+
 }
