@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class StatsResource extends JsonResource
+class BudgetResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,16 +16,11 @@ class StatsResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'name' => $this->name,
             'user_id' => $this->user_id,
             'category_id' => $this->category_id,
             'category' => new CategoryResource($this->whenLoaded('category')),
-            'budget_id' => $this->budget_id,
-            'budget' => new BudgetResource($this->whenLoaded('budget')),
             'amount' => (float) $this->amount,
-            'date' => $this->date,
-            'time' => $this->time,
-            'stats_type' => $this->stats_type,
-            'description' => $this->description,
             'created_at' => $this->created_at?->toDateTimeString(),
             'updated_at' => $this->updated_at?->toDateTimeString(),
         ];

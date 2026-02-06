@@ -13,7 +13,9 @@ class SocialAuthController extends Controller
     public function redirectToProvider(string $provider)
     {
         if (in_array($provider, ['google', 'facebook'])) {
-            return Socialite::driver($provider)->stateless()->redirect();
+            return response()->json([
+                'redirect_url' => Socialite::driver($provider)->stateless()->redirect()->getTargetUrl(),
+            ], Response::HTTP_OK);
         }
 
         return response()->json(['message' => 'Unsupported provider'], Response::HTTP_BAD_REQUEST);
@@ -29,12 +31,12 @@ class SocialAuthController extends Controller
 
         $user = User::firstOrCreate(
             [
-            'email' => $socialUser->email,
-        ],
-        [
-            'name' => $socialUser->name ?? 'User Name',
-            'email_verified_at' => now(),
-        ]
+                'email' => $socialUser->email,
+            ],
+            [
+                'name' => $socialUser->name ?? 'User Name',
+                'email_verified_at' => now(),
+            ]
         );
 
         $acessToken = $user->createToken('authToken')->plainTextToken;

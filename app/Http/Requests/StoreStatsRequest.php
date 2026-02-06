@@ -22,7 +22,6 @@ class StoreStatsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => 'required|exists:categories,id',
             'amount' => 'required|numeric|min:0.01',
             'date' => 'required|date',
             'time' => 'nullable|date_format:H:i:s',
@@ -39,8 +38,6 @@ class StoreStatsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'category_id.required' => 'Please select a category.',
-            'category_id.exists' => 'The selected category does not exist.',
             'amount.required' => 'Please enter an amount.',
             'amount.numeric' => 'The amount must be a number.',
             'amount.min' => 'The amount must be at least 0.01.',
