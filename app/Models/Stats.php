@@ -8,14 +8,15 @@ class Stats extends Model
 {
     protected $guarded = [];
 
-    public function categoryUser()
+
+    public function category()
     {
-        return $this->belongsTo(CategoryUser::class, 'user_category_id');
+        return $this->belongsTo(Category::class);
     }
 
     public function user()
     {
-        return $this->categoryUser->user();
+        return $this->belongsTo(User::class);
     }
 
 

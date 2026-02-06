@@ -8,18 +8,18 @@ class Budget extends Model
 {
     protected $guarded = [];
 
-    public function categoryUser()
+    public function category()
     {
-        return $this->belongsTo(CategoryUser::class);
+        return $this->belongsTo(Category::class);
     }
 
     public function user()
     {
-        return $this->categoryUser->user();
+        return $this->belongsTo(User::class);
     }
 
-    public function category()
+    public function stats()
     {
-        return $this->categoryUser->category();
+        return $this->hasMany(Stats::class);
     }
 }
