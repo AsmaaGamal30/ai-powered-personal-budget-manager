@@ -23,6 +23,6 @@ class BudgetResource extends JsonResource
             'amount' => (float) $this->amount,
             'created_at' => $this->created_at?->toDateTimeString(),
             'updated_at' => $this->updated_at?->toDateTimeString(),
-        ]
+        ];
     }
 }

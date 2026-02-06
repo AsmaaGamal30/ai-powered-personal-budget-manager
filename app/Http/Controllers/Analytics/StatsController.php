@@ -69,14 +69,6 @@ class StatsController extends Controller
 
     public function store(StoreStatsRequest $request, Budget $budget)
     {
-        Log::info('Received request to create stat', [
-            'request_data' => $request->validated(),
-        ]);
-        Log::info('Creating stat with data: ', [
-            'budget_id' => $budget->id,
-            'request_data' => $request->validated(),
-            'user_id' => auth()->id(),
-        ]);
         $user = auth()->user();
 
         $result = $this->statsService->createStat($user, $budget, $request->validated());

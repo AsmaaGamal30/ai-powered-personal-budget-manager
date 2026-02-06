@@ -36,14 +36,18 @@ class StatsService
     {
         $dateRange = $this->getDateRange($period, $date);
 
-        $budgets = $user->budgets()->with('category')->get();
+        // Get budgets that match the period
+        $budgets = $user->budgets()
+            ->with('category')
+            ->get();
 
+        // Calculate total spent per BUDGET (not category) for this period
         $stats = Stats::where('user_id', $user->id)
             ->whereBetween('date', [$dateRange['start'], $dateRange['end']])
-            ->select('category_id', DB::raw('SUM(amount) as total_spent'))
-            ->groupBy('category_id')
+            ->select('budget_id', DB::raw('SUM(amount) as total_spent'))
+            ->groupBy('budget_id')
             ->get()
-            ->keyBy('category_id');
+            ->keyBy('budget_id');
 
         $totalBudget = 0;
         $totalSpent = 0;
@@ -51,7 +55,7 @@ class StatsService
         $warnings = [];
 
         foreach ($budgets as $budget) {
-            $spent = $stats->get($budget->category_id)?->total_spent ?? 0;
+            $spent = $stats->get($budget->id)?->total_spent ?? 0;
             $remaining = $budget->amount - $spent;
             $percentageUsed = $budget->amount > 0 ? ($spent / $budget->amount) * 100 : 0;
 
@@ -59,6 +63,7 @@ class StatsService
             $totalSpent += $spent;
 
             $categoryBreakdown[] = [
+                'budget_id' => $budget->id,
                 'budget_name' => $budget->name,
                 'category_id' => $budget->category_id,
                 'category_name' => $budget->category->name,
@@ -71,8 +76,9 @@ class StatsService
 
             if ($percentageUsed >= 90) {
                 $warnings[] = [
+                    'budget' => $budget->name,
                     'category' => $budget->category->name,
-                    'message' => "You've used " . round($percentageUsed, 2) . "% of your budget in {$budget->category->name}",
+                    'message' => "You've used " . round($percentageUsed, 2) . "% of your '{$budget->name}' budget",
                     'severity' => $percentageUsed >= 100 ? 'critical' : 'warning',
                 ];
             }
@@ -99,18 +105,23 @@ class StatsService
         ];
     }
 
+
     public function getCategoryStats($user, $category, string $period, string $date)
     {
         $dateRange = $this->getDateRange($period, $date);
 
-        $budget = $user->budgets()->where('category_id', $category->id)->first();
+        // Get the budget for this category and period
+        $budget = $user->budgets()
+            ->where('category_id', $category->id)
+            ->first();
 
         if (!$budget) {
             return null;
         }
 
+        // Get stats for THIS SPECIFIC BUDGET
         $stats = Stats::where('user_id', $user->id)
-            ->where('category_id', $category->id)
+            ->where('budget_id', $budget->id)
             ->whereBetween('date', [$dateRange['start'], $dateRange['end']])
             ->orderBy('date', 'asc')
             ->get();
@@ -136,6 +147,10 @@ class StatsService
                 'id' => $category->id,
                 'name' => $category->name,
             ],
+            'budget' => [
+                'id' => $budget->id,
+                'name' => $budget->name,
+            ],
             'period' => $period,
             'date_range' => [
                 'start' => $dateRange['start']->format('Y-m-d'),
@@ -147,20 +162,29 @@ class StatsService
                 'remaining' => (float) $remaining,
                 'percentage_used' => round($percentageUsed, 2),
                 'status' => $this->getBudgetStatus($percentageUsed),
-                'average_daily_spending' => (float) round($stats->avg('amount'), 2),
+                'average_daily_spending' => (float) round($stats->avg('amount') ?? 0, 2),
                 'transaction_count' => $stats->count(),
             ],
             'daily_breakdown' => $dailyBreakdown,
             'trend' => $trend,
             'warning' => $percentageUsed >= 90 ? [
-                'message' => "You've used " . round($percentageUsed, 2) . "% of your budget",
+                'message' => "You've used " . round($percentageUsed, 2) . "% of your '{$budget->name}' budget",
                 'severity' => $percentageUsed >= 100 ? 'critical' : 'warning',
             ] : null,
         ];
     }
 
+
+
+
     public function createStat($user, $budget, array $data)
     {
+        Log::info('StatsService: Creating stat', [
+            'user_id' => $user->id,
+            'budget_id' => $budget->id,
+            'data' => $data,
+        ]);
+
         $stat = Stats::create([
             'user_id' => $user->id,
             'budget_id' => $budget->id,
@@ -172,7 +196,12 @@ class StatsService
             'description' => $data['description'] ?? null,
         ]);
 
+        Log::info('StatsService: Stat created', ['stat_id' => $stat->id]);
+
+        // Calculate the date range based on the stat type
         $dateRange = $this->getDateRange($data['stats_type'], $data['date']);
+
+        // Calculate total spent for THIS SPECIFIC BUDGET in this period
         $totalSpent = Stats::where('user_id', $user->id)
             ->where('budget_id', $budget->id)
             ->whereBetween('date', [$dateRange['start'], $dateRange['end']])
@@ -185,16 +214,24 @@ class StatsService
         if ($percentageUsed >= 90) {
             $warning = [
                 'message' => $percentageUsed >= 100
-                    ? "You have exceeded your budget for this category!"
-                    : "Warning: You've used {$percentageUsed}% of your budget for this category.",
+                    ? "You have exceeded your '{$budget->name}' budget!"
+                    : "Warning: You've used " . round($percentageUsed, 2) . "% of your '{$budget->name}' budget.",
                 'severity' => $percentageUsed >= 100 ? 'critical' : 'warning',
             ];
         }
 
+        Log::info('StatsService: Budget status calculated', [
+            'total_spent' => $totalSpent,
+            'percentage_used' => $percentageUsed,
+        ]);
+
         return [
             'success' => true,
-            'stat' => $stat->load('category'),
+            'stat' => $stat->load(['category', 'budget']),
             'budget_status' => [
+                'budget_id' => $budget->id,
+                'budget_name' => $budget->name,
+                'category_name' => $budget->category->name,
                 'budget' => (float) $budget->amount,
                 'spent' => (float) $totalSpent,
                 'remaining' => (float) $remaining,
@@ -271,7 +308,7 @@ class StatsService
         if ($highestSpending && $highestSpending['spent'] > 0) {
             $insights[] = [
                 'type' => 'highest_spending',
-                'message' => "Your highest spending category is {$highestSpending['category_name']} with {$highestSpending['spent']} spent",
+                'message' => "Your highest spending category is {$highestSpending['category_name']} with " . number_format($highestSpending['spent'], 2) . " spent",
             ];
         }
 
@@ -282,7 +319,7 @@ class StatsService
         if ($goodCategories > 0) {
             $insights[] = [
                 'type' => 'positive',
-                'message' => "You're managing {$goodCategories} categories well, staying under 75% of budget",
+                'message' => "You're managing {$goodCategories} " . ($goodCategories === 1 ? 'category' : 'categories') . " well, staying under 75% of budget",
             ];
         }
 
@@ -293,7 +330,18 @@ class StatsService
         if ($atRisk > 0) {
             $insights[] = [
                 'type' => 'warning',
-                'message' => "{$atRisk} categories are at risk of exceeding budget",
+                'message' => "{$atRisk} " . ($atRisk === 1 ? 'category is' : 'categories are') . " at risk of exceeding budget",
+            ];
+        }
+
+        $exceeded = collect($categoryBreakdown)
+            ->filter(fn($cat) => $cat['percentage_used'] >= 100)
+            ->count();
+
+        if ($exceeded > 0) {
+            $insights[] = [
+                'type' => 'critical',
+                'message' => "{$exceeded} " . ($exceeded === 1 ? 'category has' : 'categories have') . " exceeded the budget",
             ];
         }
 
@@ -306,8 +354,8 @@ class StatsService
             return 'insufficient_data';
         }
 
-        $firstHalf = $stats->take($stats->count() / 2)->sum('amount');
-        $secondHalf = $stats->skip($stats->count() / 2)->sum('amount');
+        $firstHalf = $stats->take((int) ($stats->count() / 2))->sum('amount');
+        $secondHalf = $stats->skip((int) ($stats->count() / 2))->sum('amount');
 
         if ($secondHalf > $firstHalf * 1.1) {
             return 'increasing';
