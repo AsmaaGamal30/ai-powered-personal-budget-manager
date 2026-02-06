@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->foreignId('category_id')->constrained('categories')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('stats_type'); //daily, monthly, quarterly, yearly
+            $table->string('description')->nullable();
             $table->date('date');
             $table->time('time')->nullable();
 

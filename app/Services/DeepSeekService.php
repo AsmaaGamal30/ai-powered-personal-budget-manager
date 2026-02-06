@@ -14,18 +14,10 @@ class DeepSeekService
     public function __construct()
     {
         $this->apiKey = config('services.deepseek.api_key');
-        $this->baseUrl = config('services.deepseek.base_url', 'https://api.deepseek.com/v1');
-        $this->model = config('services.deepseek.model', 'deepseek-chat');
+        $this->baseUrl = config('services.deepseek.base_url', 'https://openrouter.ai/api/v1');
+        $this->model = config('services.deepseek.model', 'deepseek/deepseek-r1-0528:free');
     }
 
-    /**
-     * Send a chat message to DeepSeek AI
-     *
-     * @param string $message User's message
-     * @param array $context Financial context data
-     * @param array $options Additional options
-     * @return array Response from DeepSeek
-     */
     public function chat(string $message, array $context = [], array $options = []): array
     {
         $systemPrompt = $this->buildSystemPrompt($context);
@@ -167,9 +159,6 @@ You should:
         return $basePrompt . $contextPrompt;
     }
 
-    /**
-     * Stream chat responses (for real-time responses)
-     */
     public function streamChat(string $message, array $context = [], callable $callback): void
     {
         $systemPrompt = $this->buildSystemPrompt($context);
