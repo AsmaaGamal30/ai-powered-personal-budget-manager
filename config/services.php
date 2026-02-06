@@ -48,4 +48,9 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URL'),
     ],
 
+    'deepseek' => [
+        'api_key' => env('DEEPSEEK_API_KEY'),
+        'base_url' => env('DEEPSEEK_BASE_URL', 'https://api.deepseek.com/v1'),
+        'model' => env('DEEPSEEK_MODEL', 'deepseek-chat'),
+    ],
 ];
