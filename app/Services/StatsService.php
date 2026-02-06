@@ -6,6 +6,7 @@ use App\Models\Stats;
 use App\Models\Budget;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class StatsService
 {
@@ -58,6 +59,7 @@ class StatsService
             $totalSpent += $spent;
 
             $categoryBreakdown[] = [
+                'budget_name' => $budget->name,
                 'category_id' => $budget->category_id,
                 'category_name' => $budget->category->name,
                 'budget' => (float) $budget->amount,
@@ -157,20 +159,12 @@ class StatsService
         ];
     }
 
-    public function createStat($user, array $data)
+    public function createStat($user, $budget, array $data)
     {
-        $budget = $user->budgets()->where('category_id', $data['category_id'])->first();
-
-        if (!$budget) {
-            return [
-                'success' => false,
-                'message' => 'You need to create a budget for this category first.'
-            ];
-        }
-
         $stat = Stats::create([
             'user_id' => $user->id,
-            'category_id' => $data['category_id'],
+            'budget_id' => $budget->id,
+            'category_id' => $budget->category_id,
             'amount' => $data['amount'],
             'date' => $data['date'],
             'time' => $data['time'] ?? now()->format('H:i:s'),
@@ -180,7 +174,7 @@ class StatsService
 
         $dateRange = $this->getDateRange($data['stats_type'], $data['date']);
         $totalSpent = Stats::where('user_id', $user->id)
-            ->where('category_id', $data['category_id'])
+            ->where('budget_id', $budget->id)
             ->whereBetween('date', [$dateRange['start'], $dateRange['end']])
             ->sum('amount');
 

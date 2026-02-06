@@ -22,7 +22,6 @@ class UpdateStatsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => 'sometimes|exists:categories,id',
             'amount' => 'sometimes|numeric|min:0.01',
             'date' => 'sometimes|date',
             'time' => 'nullable|date_format:H:i:s',
@@ -39,7 +38,6 @@ class UpdateStatsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'category_id.exists' => 'The selected category does not exist.',
             'amount.numeric' => 'The amount must be a number.',
             'amount.min' => 'The amount must be at least 0.01.',
             'date.date' => 'Please enter a valid date.',

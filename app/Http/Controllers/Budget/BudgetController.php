@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Budget;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
-use Illuminate\Support\Facades\Request;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class BudgetController extends Controller
 {
@@ -15,19 +16,13 @@ class BudgetController extends Controller
         return response()->json($budgets);
     }
 
-    public function show(Category $category)
-    {
-        $user = auth()->user();
-        $budget = $user->budgets()->where('category_id', $category->id)->with(['category', 'stats'])->firstOrFail();
-        return response()->json($budget);
-    }
-
     public function store(Category $category, Request $request)
     {
         $user = auth()->user();
         $budget = $user->budgets()->create([
+            'name' => $request->name,
             'category_id' => $category->id,
-            'amount' => $request->input('amount'),
+            'amount' => $request->amount,
         ]);
 
         return response()->json($budget, 201);
@@ -35,10 +30,22 @@ class BudgetController extends Controller
 
     public function update(Category $category, Request $request)
     {
+        $request->validate([
+            'amount' => 'required|numeric|min:0',
+            'name' => 'nullable|string|max:255',
+        ]);
+
+        Log::info('Updating budget', [
+            'user_id' => auth()->id(),
+            'category_id' => $category->id,
+            'amount' => $request->amount,
+            'name' => $request->name,
+        ]);
         $user = auth()->user();
         $budget = $user->budgets()->where('category_id', $category->id)->firstOrFail();
         $budget->update([
-            'amount' => $request->input('amount'),
+            'amount' => $request->amount,
+            'name' => $request->name ?? $budget->name,
         ]);
 
         return response()->json($budget);

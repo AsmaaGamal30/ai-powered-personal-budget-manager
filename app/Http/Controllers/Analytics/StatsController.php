@@ -9,10 +9,12 @@ use App\Http\Requests\UpdateStatsRequest;
 use App\Http\Resources\CategoryStatsResource;
 use App\Http\Resources\StatsOverviewResource;
 use App\Http\Resources\StatsResource;
+use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Stats;
 use App\Services\StatsService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class StatsController extends Controller
 {
@@ -65,11 +67,22 @@ class StatsController extends Controller
         return new CategoryStatsResource($data);
     }
 
-    public function store(StoreStatsRequest $request)
+    public function store(StoreStatsRequest $request, Budget $budget)
     {
+        Log::info('Received request to create stat', [
+            'request_data' => $request->validated(),
+        ]);
+        Log::info('Creating stat with data: ', [
+            'budget_id' => $budget->id,
+            'request_data' => $request->validated(),
+            'user_id' => auth()->id(),
+        ]);
         $user = auth()->user();
 
-        $result = $this->statsService->createStat($user, $request->validated());
+        $result = $this->statsService->createStat($user, $budget, $request->validated());
+        Log::info('Create stat result: ', [
+            'result' => $result,
+        ]);
 
         if (!$result['success']) {
             return response()->json([
