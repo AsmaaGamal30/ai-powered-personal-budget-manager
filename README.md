@@ -111,7 +111,7 @@ This application leverages advanced language models from [OpenRouter.ai](https:/
 
 ### Backend
 
-- **Framework**: Laravel 11.x
+- **Framework**: Laravel 12.x
 - **Language**: PHP 8.2+
 - **Database**: MySQL 8.0+
 - **Authentication**: Laravel Sanctum (API tokens)
