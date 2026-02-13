@@ -36,6 +36,9 @@
     <env name="PULSE_ENABLED" value="false"/>
     <env name="TELESCOPE_ENABLED" value="false"/>
     <env name="NIGHTWATCH_ENABLED" value="false"/>
+    <env name="LLM_API_KEY" value="1234"/>
+    <env name="LLM_BASE_URL" value="https://example.com/api"/>
+    <env name="LLM_MODEL" value="test-model"/>
     </php>
 
 </phpunit>
