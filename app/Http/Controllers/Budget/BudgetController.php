@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Budget;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class BudgetController extends Controller
 {
@@ -35,12 +34,6 @@ class BudgetController extends Controller
             'name' => 'nullable|string|max:255',
         ]);
 
-        Log::info('Updating budget', [
-            'user_id' => auth()->id(),
-            'category_id' => $category->id,
-            'amount' => $request->amount,
-            'name' => $request->name,
-        ]);
         $user = auth()->user();
         $budget = $user->budgets()->where('category_id', $category->id)->firstOrFail();
         $budget->update([

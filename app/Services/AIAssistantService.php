@@ -7,17 +7,17 @@ use Carbon\Carbon;
 
 class AIAssistantService
 {
-    protected DeepSeekService $deepSeekService;
+    protected LLMService $LLMService;
 
-    public function __construct(DeepSeekService $deepSeekService)
+    public function __construct(LLMService $LLMService)
     {
-        $this->deepSeekService = $deepSeekService;
+        $this->LLMService = $LLMService;
     }
 
     public function chat(string $message, $user, array $additionalContext = []): array
     {
         $financialContext = $this->gatherFinancialContext($user, $additionalContext);
-        $response = $this->deepSeekService->chat($message, $financialContext);
+        $response = $this->LLMService->chat($message, $financialContext);
 
         return [
             'message' => $message,
@@ -26,7 +26,7 @@ class AIAssistantService
         ];
     }
 
-    public function getInsights($user, string $period = 'monthly', ?string $date): array
+    public function getInsights($user, string $period = 'monthly', ?string $date = null): array
     {
         $date = $date ?? now()->format('Y-m-d');
 
@@ -36,15 +36,17 @@ class AIAssistantService
             'detailed' => true,
         ]);
 
-        $prompt = "Based on the user's spending data, provide detailed financial insights including:
-1. Spending patterns analysis
-2. Budget optimization recommendations
+        $prompt = "Based on the user's profile and spending data, provide detailed financial insights including:
+1. Spending patterns analysis (considering their life stage and responsibilities)
+2. Budget optimization recommendations tailored to their situation
 3. Areas where they can save money
 4. Positive spending habits to maintain
 5. Warning about any concerning trends
-Please be specific and actionable.";
+6. Age-appropriate financial advice and planning suggestions
 
-        $response = $this->deepSeekService->chat($prompt, $financialContext);
+be specific, actionable, and personalized to their demographic profile.";
+
+        $response = $this->LLMService->chat($prompt, $financialContext);
 
         return [
             'period' => $period,
@@ -61,10 +63,10 @@ Please be specific and actionable.";
         ]);
 
         $prompt = $categoryId
-            ? "Analyze the spending in this specific category and recommend an optimal budget amount. Consider historical spending patterns and provide justification."
-            : "Review all spending categories and recommend optimal budget allocations. Provide specific amounts and reasoning for each category.";
+            ? "Analyze the spending in this specific category and recommend an optimal budget amount. Consider the user's salary, family situation, and historical spending patterns. Provide justification."
+            : "Review all spending categories and recommend optimal budget allocations based on the user's income, family responsibilities, and life stage. Provide specific amounts and reasoning for each category.";
 
-        $response = $this->deepSeekService->chat($prompt, $financialContext);
+        $response = $this->LLMService->chat($prompt, $financialContext);
 
         return [
             'recommendations' => $response['content'],
@@ -78,14 +80,14 @@ Please be specific and actionable.";
             'include_daily_breakdown' => true,
         ]);
 
-        $prompt = "Analyze the spending data for unusual patterns or anomalies. Identify:
+        $prompt = "Analyze the spending data for unusual patterns or anomalies, considering the user's typical financial situation and responsibilities. Identify:
 1. Any sudden spikes in spending
 2. Categories with irregular patterns
-3. Potential budget risks
+3. Potential budget risks (especially important given their family situation)
 4. Unusual transactions that need attention
 Be specific about dates and amounts.";
 
-        $response = $this->deepSeekService->chat($prompt, $financialContext);
+        $response = $this->LLMService->chat($prompt, $financialContext);
 
         return [
             'anomalies' => $response['content'],
@@ -99,10 +101,10 @@ Be specific about dates and amounts.";
         ]);
 
         $prompt = $targetAmount
-            ? "The user wants to save {$targetAmount}. Analyze their spending and provide specific, actionable suggestions on how to achieve this savings goal. Include which categories to reduce and by how much."
-            : "Analyze the user's spending and identify opportunities to save money. Provide specific, actionable suggestions for each category.";
+            ? "The user wants to save {$targetAmount}. Analyze their spending considering their income, family obligations, and life situation. Provide specific, realistic, actionable suggestions on how to achieve this savings goal. Include which categories to reduce and by how much."
+            : "Analyze the user's spending and identify opportunities to save money. Consider their salary, family responsibilities, age, and life stage. Provide specific, actionable suggestions for each category that are realistic for their situation.";
 
-        $response = $this->deepSeekService->chat($prompt, $financialContext);
+        $response = $this->LLMService->chat($prompt, $financialContext);
 
         return [
             'suggestions' => $response['content'],
@@ -152,7 +154,7 @@ Be specific about dates and amounts.";
         }
 
         $context = [
-            'user_id' => $user->id,
+            'user_profile' => $this->getUserProfileContext($user),
             'analysis_period' => $period,
             'date_range' => [
                 'start' => $dateRange['start']->format('Y-m-d'),
@@ -162,6 +164,29 @@ Be specific about dates and amounts.";
             'total_spent' => (float) $stats->sum('amount'),
             'categories_summary' => $summary,
         ];
+
+        if ($user->salary) {
+            $monthlySalary = (float) $user->salary;
+            $totalSpent = (float) $stats->sum('amount');
+
+            $periodMonths = match ($period) {
+                'daily' => 1 / 30,
+                'weekly' => 1 / 4,
+                'monthly' => 1,
+                'quarterly' => 3,
+                'yearly' => 12,
+                default => 1,
+            };
+
+            $periodIncome = $monthlySalary * $periodMonths;
+            $spendingRatio = $periodIncome > 0 ? round(($totalSpent / $periodIncome) * 100, 2) : 0;
+
+            $context['financial_metrics'] = [
+                'period_income' => $periodIncome,
+                'spending_to_income_ratio' => $spendingRatio,
+                'remaining_income' => $periodIncome - $totalSpent,
+            ];
+        }
 
         if ($options['include_daily_breakdown'] ?? false) {
             $context['daily_breakdown'] = $stats->groupBy(function ($stat) {
@@ -195,6 +220,63 @@ Be specific about dates and amounts.";
         }
 
         return $context;
+    }
+
+    protected function getUserProfileContext($user): array
+    {
+        $profile = [
+            'user_id' => $user->id,
+        ];
+
+        if ($user->salary) {
+            $profile['monthly_salary'] = (float) $user->salary;
+        }
+
+        if ($user->age) {
+            $profile['age'] = (int) $user->age;
+            $profile['life_stage'] = $this->determineLifeStage((int) $user->age);
+        }
+
+        if ($user->gender) {
+            $profile['gender'] = $user->gender;
+        }
+
+        $profile['relationship_status'] = $user->is_single ? 'single' : 'in_relationship';
+
+        $profile['is_family_provider'] = (bool) $user->is_family_provider;
+
+        if ($user->is_family_provider && $user->family_members_count) {
+            $profile['family_members_count'] = (int) $user->family_members_count;
+        }
+
+        $profile['financial_responsibility_level'] = $this->determineResponsibilityLevel($user);
+
+        return $profile;
+    }
+
+    protected function determineLifeStage(int $age): string
+    {
+        return match (true) {
+            $age < 25 => 'young_adult',
+            $age < 35 => 'early_career',
+            $age < 45 => 'mid_career',
+            $age < 55 => 'established_career',
+            $age < 65 => 'pre_retirement',
+            default => 'retirement_age',
+        };
+    }
+
+    protected function determineResponsibilityLevel($user): string
+    {
+        if ($user->is_family_provider && $user->family_members_count > 2) {
+            return 'high';
+        } elseif ($user->is_family_provider) {
+            return 'moderate_to_high';
+        } elseif (!$user->is_single) {
+            return 'moderate';
+        } else {
+            return 'individual';
+        }
     }
 
     public function getDateRange(string $period, string $date): array

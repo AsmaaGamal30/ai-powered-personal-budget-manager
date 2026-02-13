@@ -5,7 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class DeepSeekService
+class LLMService
 {
     protected string $apiKey;
     protected string $baseUrl;
@@ -13,9 +13,9 @@ class DeepSeekService
 
     public function __construct()
     {
-        $this->apiKey = config('services.deepseek.api_key');
-        $this->baseUrl = config('services.deepseek.base_url', 'https://openrouter.ai/api/v1');
-        $this->model = config('services.deepseek.model', 'openai/gpt-oss-120b:free');
+        $this->apiKey = config('services.LLM.api_key');
+        $this->baseUrl = config('services.LLM.base_url', 'https://openrouter.ai/api/v1');
+        $this->model = config('services.LLM.model', 'openai/gpt-oss-120b:free');
     }
 
     public function chat(string $message, array $context = [], array $options = []): array
@@ -90,15 +90,15 @@ class DeepSeekService
                 throw new \Exception("OpenRouter API Error ({$errorCode}): {$errorMessage}");
             }
 
-            Log::error('DeepSeek API Error', [
+            Log::error('LLM API Error', [
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
 
-            throw new \Exception('DeepSeek API request failed: ' . $response->body());
+            throw new \Exception('LLM API request failed: ' . $response->body());
 
         } catch (\Exception $e) {
-            Log::error('DeepSeek Service Exception', [
+            Log::error('LLM Service Exception', [
                 'message' => $e->getMessage(),
                 'context' => $context,
                 'userId' => auth()->id() ?? null,
@@ -192,114 +192,5 @@ CRITICAL FORMATTING RULES:
         return $basePrompt . $contextPrompt;
     }
 
-    public function streamChat(string $message, array $context = [], callable $callback): void
-    {
-        $systemPrompt = $this->buildSystemPrompt($context);
 
-        $payload = [
-            'model' => $this->model,
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => $systemPrompt,
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $message,
-                ],
-            ],
-            'stream' => true,
-            'temperature' => 0.7,
-        ];
-
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Content-Type' => 'application/json',
-                'HTTP-Referer' => config('app.url'),
-                'X-Title' => config('app.name'),
-            ])->timeout(120)
-                ->post($this->baseUrl . '/chat/completions', $payload);
-
-            if ($response->successful()) {
-                $stream = $response->body();
-                $lines = explode("\n", $stream);
-
-                foreach ($lines as $line) {
-                    if (strpos($line, 'data: ') === 0) {
-                        $data = substr($line, 6);
-                        if ($data === '[DONE]') {
-                            break;
-                        }
-
-                        $json = json_decode($data, true);
-                        if (isset($json['choices'][0]['delta']['content'])) {
-                            $callback($json['choices'][0]['delta']['content']);
-                        }
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            Log::error('DeepSeek Stream Exception', [
-                'message' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
-    }
-
-    public function validateConfiguration(): bool
-    {
-        if (empty($this->apiKey)) {
-            throw new \Exception('OpenRouter API key is not configured. Please set DEEPSEEK_API_KEY in your .env file');
-        }
-
-        if (empty($this->baseUrl)) {
-            throw new \Exception('OpenRouter base URL is not configured');
-        }
-
-        return true;
-    }
-
-    public function testConnection(): array
-    {
-        try {
-            $this->validateConfiguration();
-
-            $response = $this->chat('Hello', [], ['max_tokens' => 10]);
-
-            return [
-                'success' => true,
-                'message' => 'Connection successful',
-                'model' => $response['model'],
-            ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
-     * Get available models from OpenRouter
-     */
-    public function getAvailableModels(): array
-    {
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-            ])->get($this->baseUrl . '/models');
-
-            if ($response->successful()) {
-                return $response->json()['data'] ?? [];
-            }
-
-            return [];
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch available models', [
-                'message' => $e->getMessage(),
-            ]);
-            return [];
-        }
-    }
 }
