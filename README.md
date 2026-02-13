@@ -139,7 +139,6 @@ This application leverages advanced language models from [OpenRouter.ai](https:/
 - Docker & Docker Compose installed
 - Git installed
 - OpenRouter.ai account (free) - [Sign up here](https://openrouter.ai)
-- SMTP credentials for email (Gmail, Mailgun, etc.)
 
 ### Step 1: Clone the Repository
 
@@ -171,22 +170,7 @@ LLM_BASE_URL=https://openrouter.ai/api/v1
 LLM_MODEL=openai/gpt-oss-120b:free
 ```
 
-### Step 4: Configure Email Settings
-
-Add your SMTP credentials to `.env`:
-
-```env
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=your_email@gmail.com
-MAIL_PASSWORD=your_app_password
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=your_email@gmail.com
-MAIL_FROM_NAME="Budget Manager"
-```
-
-### Step 5: Database Configuration
+### Step 4: Database Configuration
 
 ```env
 DB_CONNECTION=mysql
@@ -195,9 +179,14 @@ DB_PORT=3306
 DB_DATABASE=budget
 DB_USERNAME=budget_user
 DB_PASSWORD=secure_password
+
+REDIS_CLIENT=phpredis
+REDIS_HOST=redis
+REDIS_PASSWORD=null
+REDIS_PORT=6379
 ```
 
-### Step 6: Build and Start with Docker
+### Step 5: Build and Start with Docker
 
 ```bash
 # Build and start the containers
@@ -216,7 +205,7 @@ docker-compose exec app php artisan migrate
 docker-compose exec app php artisan db:seed
 ```
 
-### Step 7: Access the Application
+### Step 6: Access the Application
 
 ## The API will be available at: `http://localhost:8000`
 
