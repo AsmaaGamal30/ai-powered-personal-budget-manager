@@ -10,7 +10,7 @@ _Take control of your finances with personalized insights, smart budgeting, and 
 
 ---
 
-[![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?style=flat&logo=laravel)](https://laravel.com)
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=flat&logo=laravel)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat&logo=php)](https://php.net)
 [![AI Powered](https://img.shields.io/badge/AI-Powered-00D9FF?style=flat&logo=openai)](https://openrouter.ai)
 
@@ -144,7 +144,7 @@ This application leverages advanced language models from [OpenRouter.ai](https:/
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/AsmaaGamal30/budget.git
+git clone https://github.com/AsmaaGamal30/ai-powered-personal-budget-manager.git
 cd budget
 ```
 
