@@ -35,12 +35,6 @@ class BudgetController extends Controller
             'name' => 'nullable|string|max:255',
         ]);
 
-        Log::info('Updating budget', [
-            'user_id' => auth()->id(),
-            'category_id' => $category->id,
-            'amount' => $request->amount,
-            'name' => $request->name,
-        ]);
         $user = auth()->user();
         $budget = $user->budgets()->where('category_id', $category->id)->firstOrFail();
         $budget->update([

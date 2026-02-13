@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Budget\BudgetController;
 use App\Http\Controllers\Category\CategoryController;
+use App\Http\Controllers\User\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register'])->name('register');
@@ -18,6 +19,7 @@ Route::get('{provider}/callback', [SocialAuthController::class, 'handleProviderC
 
 
 Route::prefix('users')->middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::put('/{user}', [UserController::class, 'update'])->name('user.update');
     Route::post('/{user}/logout', [AuthController::class, 'logout'])->name('user.logout');
 });
 
@@ -34,26 +36,17 @@ Route::prefix('budgets')->middleware(['auth:sanctum', 'verified'])->group(functi
 
 Route::prefix('stats')->middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/', [StatsController::class, 'index']);
-
     Route::get('/records', [StatsController::class, 'getUserStats']);
-
     Route::post('/{budget}', [StatsController::class, 'store']);
-
     Route::put('/{stat}', [StatsController::class, 'update']);
-
     Route::delete('/{stat}', [StatsController::class, 'destroy']);
-
     Route::get('/categories/{category}', [StatsController::class, 'show']);
 });
 
 Route::prefix('ai')->middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/ask', [AIAssistantController::class, 'ask']);
-
     Route::get('/insights', [AIAssistantController::class, 'getInsights']);
-
     Route::get('/recommendations', [AIAssistantController::class, 'getBudgetRecommendations']);
-
     Route::get('/anomalies', [AIAssistantController::class, 'analyzeAnomalies']);
-
     Route::get('/savings-suggestions', [AIAssistantController::class, 'getSavingsSuggestions']);
 });

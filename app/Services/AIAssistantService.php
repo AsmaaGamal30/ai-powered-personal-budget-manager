@@ -7,17 +7,17 @@ use Carbon\Carbon;
 
 class AIAssistantService
 {
-    protected DeepSeekService $deepSeekService;
+    protected LLMService $LLMService;
 
-    public function __construct(DeepSeekService $deepSeekService)
+    public function __construct(LLMService $LLMService)
     {
-        $this->deepSeekService = $deepSeekService;
+        $this->LLMService = $LLMService;
     }
 
     public function chat(string $message, $user, array $additionalContext = []): array
     {
         $financialContext = $this->gatherFinancialContext($user, $additionalContext);
-        $response = $this->deepSeekService->chat($message, $financialContext);
+        $response = $this->LLMService->chat($message, $financialContext);
 
         return [
             'message' => $message,
@@ -44,7 +44,7 @@ class AIAssistantService
 5. Warning about any concerning trends
 Please be specific and actionable.";
 
-        $response = $this->deepSeekService->chat($prompt, $financialContext);
+        $response = $this->LLMService->chat($prompt, $financialContext);
 
         return [
             'period' => $period,
@@ -64,7 +64,7 @@ Please be specific and actionable.";
             ? "Analyze the spending in this specific category and recommend an optimal budget amount. Consider historical spending patterns and provide justification."
             : "Review all spending categories and recommend optimal budget allocations. Provide specific amounts and reasoning for each category.";
 
-        $response = $this->deepSeekService->chat($prompt, $financialContext);
+        $response = $this->LLMService->chat($prompt, $financialContext);
 
         return [
             'recommendations' => $response['content'],
@@ -85,7 +85,7 @@ Please be specific and actionable.";
 4. Unusual transactions that need attention
 Be specific about dates and amounts.";
 
-        $response = $this->deepSeekService->chat($prompt, $financialContext);
+        $response = $this->LLMService->chat($prompt, $financialContext);
 
         return [
             'anomalies' => $response['content'],
@@ -102,7 +102,7 @@ Be specific about dates and amounts.";
             ? "The user wants to save {$targetAmount}. Analyze their spending and provide specific, actionable suggestions on how to achieve this savings goal. Include which categories to reduce and by how much."
             : "Analyze the user's spending and identify opportunities to save money. Provide specific, actionable suggestions for each category.";
 
-        $response = $this->deepSeekService->chat($prompt, $financialContext);
+        $response = $this->LLMService->chat($prompt, $financialContext);
 
         return [
             'suggestions' => $response['content'],
